@@ -33,9 +33,8 @@ class Marvin():
     def get_api(self, map_name):
         self.configureSession()
         try:
-            url = f"{self.__url}{map_name}/"
-            
-            response = self.session.post(url,
+            response = self.session.post(self.__url,
+                                         params=map_name,
                                          auth=self.auth,
                                          timeout=self.timeout)
 
