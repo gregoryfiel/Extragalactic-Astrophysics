@@ -11,17 +11,17 @@ O projeto é organizado da seguinte maneira:
 ```bash
 ProjectCSGalaxies/
 │
-├── landing/          # Dados brutos baixados da API Marvin
-├── curated/          # Dados processados e prontos para análise
-├── src/              # Código-fonte principal do projeto
-│   ├── module1.py    # Exemplo de módulo
+├── landing/
+├── curated/
+├── src/ 
+│   ├── main.py
 │   └── ...
-├── tests/            # Testes automatizados para os módulos
-│   └── test_module1.py
-├── README.md         # Este arquivo
-├── requirements.txt  # Lista de dependências do projeto
-├── setup.py          # Script de configuração do projeto
-└── venv/             # Ambiente virtual Python (opcional)
+├── tests/
+│   └── test_src.py
+├── README.md 
+├── requirements.txt 
+├── setup.py 
+└── venv/
 ```
 
 ### Principais Pastas
