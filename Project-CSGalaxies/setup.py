@@ -14,6 +14,17 @@ setup(
         "numpy",
         "marvin"
     ],
+    extras_require={
+        'dev': [
+            'pytest>=6.2.5',
+            'flake8>=3.9.0',
+            'black>=21.9b0',
+        ],
+        'docs': [
+            'sphinx>=4.2.0',
+            'sphinx_rtd_theme>=0.5.2',
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
