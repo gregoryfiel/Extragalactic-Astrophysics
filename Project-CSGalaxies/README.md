@@ -73,7 +73,7 @@ python -m unittest discover -s tests
 ```
 
 ## Autores
-Gregory Peruzzo Fiel
+Gregory Peruzzo Fiel <br>
 Marina Trevisan, PhD - Orientadora
 
 ## Licença
