@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from MarvinClient import Marvin
+from api.MarvinClient import Marvin
 
 class MarvinDataExporter():
     def __init__(self, source=Marvin()):
@@ -24,17 +24,3 @@ class MarvinDataExporter():
 
         with open(output_file, mode='w', encoding='utf-8') as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
-
-if __name__ == '__main__':
-
-    map_list = [
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gflux', 'ha_6564'),
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gflux', 'hb_4862'),
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gvel', 'ha_6564'),
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gsigma', 'ha_6564'),
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gew', 'ha_6564'),
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gew', 'hb_4862'),
-    ]
-
-    marvin_exporter = MarvinDataExporter()
-    marvin_exporter.fetch_and_store(map_list)
