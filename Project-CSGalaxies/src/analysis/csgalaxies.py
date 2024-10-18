@@ -22,11 +22,12 @@ map_list = [
         ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gew', 'hb_4862'),
     ]
 
-for map_name, property_name, channel in map_list:
-    marvin_exporter = MarvinDataExporter()
-    marvin_exporter.fetch_and_store(map_list)
+marvin_exporter = MarvinDataExporter()
+marvin_exporter.fetch_and_store(map_list)
+
+'''for map_name, property_name, channel in map_list:
     path_base = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'landing')
     path_map_name = os.path.join(path_base, map_name)
     path = os.path.join(path_map_name, f"{map_name}-{property_name}_{channel}.json")
     data_DF = spark.read.json(path)
-    data_DF.show()
+    data_DF.show()'''
