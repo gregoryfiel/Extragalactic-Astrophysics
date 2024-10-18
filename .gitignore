@@ -1,0 +1,18 @@
+# Ignorar ambientes virtuais
+venv/
+src/venv/
+
+# Ignorar arquivos e diretórios de cache do Python
+__pycache__/
+*.py[cod]
+
+# Ignorar arquivos temporários e logs
+*.log
+*.tmp
+
+# Ignorar outros diretórios de cache
+/Project-CSGalaxies/src/analysis/__pycache__/
+/Project-CSGalaxies/src/api/__pycache__/
+/Project-CSGalaxies/data/landing/
+Project-CSGalaxies/src/analysis/__pycache__/csgalaxies.cpython-311.pyc
+Project-CSGalaxies/src/api/__pycache__/MarvinClient.cpython-311.pyc
