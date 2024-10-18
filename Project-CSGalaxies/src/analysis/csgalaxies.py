@@ -14,10 +14,15 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 map_list = [
-        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gflux', 'ha_6564')
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gflux', 'ha_6564'),
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gflux', 'hb_4862'),
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gvel', 'ha_6564'),
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gsigma', 'ha_6564'),
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gew', 'ha_6564'),
+        ('12772-12705', 'SPX', 'MILESHC-MASTARSSP', 'emline_gew', 'hb_4862'),
     ]
 
-for map_name, bintype, template, property_name, channel in map_list:
+for map_name, property_name, channel in map_list:
     marvin_exporter = MarvinDataExporter()
     marvin_exporter.fetch_and_store(map_list)
     path_base = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'landing')
