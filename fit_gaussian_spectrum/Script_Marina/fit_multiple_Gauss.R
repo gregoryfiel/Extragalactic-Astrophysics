@@ -83,7 +83,7 @@ fit_cont <- function(x, y, nsig_up, nsig_low, degree, span, Nit){
 # Spectrum
 # ---------------------------------------
 # ---------------------------------------
-ex_gal = read.table('Script_Marina/0555-52266-0558.cxt') # I Zw 18
+ex_gal = read.table('fit_gaussian_spectrum\\script_marina\\0555-52266-0558.cxt') # I Zw 18
 lam_ex = ex_gal$V1[ex_gal$V2 > 0]
 flux_ex = ex_gal$V2[ex_gal$V2 > 0]
 error_ex = ex_gal$V3[ex_gal$V2 > 0]; error_ex[] = 1
@@ -103,29 +103,29 @@ if(norm_cont){
 l0_line = 6562   # Hbeta ~ 4861; OIII ~ 5007; Halpha ~ 6562
 xx.xx_line = lam_ex >= l0_line - 20 & lam_ex <= l0_line + 20
 
-##########################
-# SINGLE COMPONENT
-##########################
-fixed_i = list()
-lower_i = list(l0 = l0_line - 10, s0 = 1, F0 = 5)
-upper_i = list(l0 = l0_line + 10, s0 = 8, F0 = 1e4)
-mle.result <- mle2(single_gauss, start = list(l0 = l0_line, s0 = 2, F0 = 4500),
-                   fixed = fixed_i,
-                   data = list(lambda = lam_ex[xx.xx_line], flux = flux_ex[xx.xx_line], err = error_ex[xx.xx_line]), 
-                   method = "L-BFGS-B", skip.hessian = T,
-                   lower = lower_i, upper = upper_i,
-                   control = list(maxit = 1e5))
-tt <- coef(mle.result)
-l0_bin = tt["l0"]
-s0_bin = tt["s0"]
-F0_bin = tt["F0"]
-print(tt)
+  ##########################
+  # SINGLE COMPONENT
+  ##########################
+  fixed_i = list()
+  lower_i = list(l0 = l0_line - 10, s0 = 1, F0 = 5)
+  upper_i = list(l0 = l0_line + 10, s0 = 8, F0 = 1e4)
+  mle.result <- mle2(single_gauss, start = list(l0 = l0_line, s0 = 2, F0 = 4500),
+                    fixed = fixed_i,
+                    data = list(lambda = lam_ex[xx.xx_line], flux = flux_ex[xx.xx_line], err = error_ex[xx.xx_line]), 
+                    method = "L-BFGS-B", skip.hessian = T,
+                    lower = lower_i, upper = upper_i,
+                    control = list(maxit = 1e5))
+  tt <- coef(mle.result)
+  l0_bin = tt["l0"]
+  s0_bin = tt["s0"]
+  F0_bin = tt["F0"]
+  print(tt)
 
-tt <- coef(mle.result)
-k = length(tt)
-bic_1 = BIC(mle.result)
-aic_1 = AIC(mle.result)
-print(c(bic_1, aic_1))
+  tt <- coef(mle.result)
+  k = length(tt)
+  bic_1 = BIC(mle.result)
+  aic_1 = AIC(mle.result)
+  print(c(bic_1, aic_1))
 # aicc_s = AIC(mle.result) + 2 * k * (k + 1) / (Nsat - k - 1)
 
 ##########################
