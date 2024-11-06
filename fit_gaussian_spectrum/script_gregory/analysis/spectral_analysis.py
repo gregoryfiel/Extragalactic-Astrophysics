@@ -1,29 +1,29 @@
 import numpy as np
 from scipy.optimize import minimize
 
-
 class SpectralAnalysis:
-    def __init__(self, lam_ex, flux_ex, error_ex):
-        self.lam_ex = lam_ex
-        self.flux_ex = flux_ex
-        self.error_ex = error_ex
+    def __init__(self, lambda_, flux, err, error_original):
+        self.lam_ex = lambda_
+        self.flux_ex = flux
+        self.error_ex = err
+        self.error_original = error_original
         self.norm_cont = True
         self.l0_line = 6562
 
     def single_gauss(self, params):
         l0, s0, F0 = params
-        model_line = F0 * np.exp(-((self.lam_ex - l0)**2) / (2 * s0**2)) / np.sqrt(2 * np.pi * s0**2)
-        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - ((self.flux_ex - model_line)**2) / (2 * self.error_ex**2)
+        model_line = F0 * np.exp(-(self.lam_ex - l0)**2 / (2 * s0**2)) / np.sqrt(2 * np.pi * s0**2)
+        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - (self.flux_ex - model_line)**2 / (2 * self.error_ex**2)
         lnlike = -np.sum(ln_p_i)
         
         return lnlike
 
     def two_gauss(self, params):
         l0_1, s0_1, F0_1, l0_2, s0_2, F0_2 = params
-        line_1 = F0_1 * np.exp(-((self.lam_ex - l0_1)**2) / (2 * s0_1**2)) / np.sqrt(2 * np.pi * s0_1**2)
-        line_2 = F0_2 * np.exp(-((self.lam_ex - l0_2)**2) / (2 * s0_2**2)) / np.sqrt(2 * np.pi * s0_2**2)
+        line_1 = F0_1 * np.exp(-(self.lam_ex - l0_1)**2 / (2 * s0_1**2)) / np.sqrt(2 * np.pi * s0_1**2)
+        line_2 = F0_2 * np.exp(-(self.lam_ex - l0_2)**2 / (2 * s0_2**2)) / np.sqrt(2 * np.pi * s0_2**2)
         model_line = line_1 + line_2
-        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - ((self.flux_ex - model_line)**2) / (2 * self.error_ex**2)
+        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - (self.flux_ex - model_line)**2 / (2 * self.error_ex**2)
         lnlike = -np.sum(ln_p_i)
         
         return lnlike
@@ -32,7 +32,7 @@ class SpectralAnalysis:
         x1_temp = self.lam_ex
         x2_temp = self.flux_ex
 
-        for nn in range(Nit):
+        for _ in range(Nit):
             temp = np.polyfit(x1_temp, x2_temp, degree)
             model_line = np.polyval(temp, x1_temp)
             xx_temp1 = (x2_temp - model_line) <= nsig_up * np.std(x2_temp - model_line) 
@@ -47,7 +47,7 @@ class SpectralAnalysis:
 
     def run_analysis(self):
         if self.norm_cont:
-            temp = self.fit_cont()
+            temp = self.fit_cont(self.lam_ex, self.flux_ex)
             self.mean_flux = np.polyval(temp, self.lam_ex)
             self.flux_ex = self.flux_ex - self.mean_flux
             self.flux_original = self.flux_ex

@@ -24,13 +24,13 @@ class Plotter:
         plt.xlim([6540, 6580])
         plt.xlabel('lambda')
         plt.ylabel('Flux')
-        plt.legend(['Observed', 'One component', f'(BIC = {self.analyzer.bic_1:.0f}, AIC = {self.analyzer.aic_1:.0f})',
-                    'Two components', f'(BIC = {self.analyzer.bic_2:.0f}, AIC = {self.analyzer.aic_2:.0f})'], loc='upper left')
+        plt.legend(['Observed', 'One component', 'Two components', 'Two components',], loc='upper left')
 
     def plot_error(self):
         plt.subplot(3, 1, 2)
-        plt.plot(self.analyzer.lam_ex[self.xx_line], self.analyzer.error_ex[self.xx_line], 'k-', lw=2)
+        plt.plot(self.analyzer.lam_ex[self.xx_line], self.analyzer.error_original[self.xx_line], 'k-', lw=2)
         plt.xlim([6550, 6580])
+        plt.ticklabel_format(axis='y',style='sci',scilimits=(1,4))
         plt.xlabel('lambda')
         plt.ylabel('Error')
 
