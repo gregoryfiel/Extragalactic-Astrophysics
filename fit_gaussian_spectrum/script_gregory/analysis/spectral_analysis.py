@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+import statsmodels.api as sm
 
 class SpectralAnalysis:
     def __init__(self, lambda_, flux, err, error_original):
@@ -72,15 +73,18 @@ class SpectralAnalysis:
         self.aic_2 = self.AIC(res)
         print("\nTwo Components: BIC =", self.bic_2, "AIC =", self.aic_2)
         print("l0_1 = ", self.l0_1_bin, "s0_1 = ", self.s0_1_bin, "F0_1 = ", self.F0_1_bin, "l0_2 = ", self.l0_2_bin, "s0_2 = ", self.s0_2_bin, "F0_2 = ", self.F0_2_bin)
-
+    
     def BIC(self, res):
+        nobs = len(self.lam_ex[self.xx_line])
         k = len(res.x)
-        equation = -2 * res.fun + k * np.log(len(self.lam_ex[self.xx_line]))
+        llf = res.fun
+        bic = -2 * res.fun + (k+1) * np.log(nobs)
         
-        return equation
+        return bic
 
     def AIC(self, res):
         k = len(res.x)
-        equation = 2 * k - 2 * res.fun
+        llf = res.fun
+        aic = - 2 * llf + 2 * (k + 1)
         
-        return equation
+        return aic
