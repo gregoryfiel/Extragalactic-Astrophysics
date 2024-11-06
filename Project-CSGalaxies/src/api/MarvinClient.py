@@ -31,10 +31,10 @@ class Marvin():
                         status_forcelist=[502, 503, 504])
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
-    def get_api(self, map_name=None, bintype=None, template=None):
+    def get_api(self, map_name=None, bintype=None, template=None, property_name=None, channel=None):
         self.configureSession()
         try:
-            url = f"{self.__url}{map_name}/{bintype}/{template}/"
+            url = f"{self.__url}{map_name}/{bintype}/{template}/map/{property_name}/{channel}"
             response = self.session.post(url,
                                          params={
                                              'release':'DR17'},
