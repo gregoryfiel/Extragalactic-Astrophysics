@@ -1,50 +1,113 @@
 import numpy as np
-from scipy.optimize import minimize
+from scipy.interpolate import UnivariateSpline
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import importr
+from rpy2.robjects.vectors import FloatVector, ListVector
+
 
 class SpectralAnalysis:
-    def __init__(self, lambda_, flux, err, error_original):
+    def __init__(self, lambda_, flux, err, error_original, norm_cont, l0_line, xx_line):
         self.lam_ex = lambda_
         self.flux_ex = flux
         self.error_ex = err
         self.error_original = error_original
-        self.norm_cont = True
-        self.l0_line = 6562
-
-    def single_gauss(self, params):
-        l0, s0, F0 = params
-        model_line = F0 * np.exp(-(self.lam_ex - l0)**2 / (2 * s0**2)) / np.sqrt(2 * np.pi * s0**2)
-        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - (self.flux_ex - model_line)**2 / (2 * self.error_ex**2)
-        lnlike = -np.sum(ln_p_i)
-        
-        return lnlike
-
-    def two_gauss(self, params):
-        l0_1, s0_1, F0_1, l0_2, s0_2, F0_2 = params
-        line_1 = F0_1 * np.exp(-(self.lam_ex - l0_1)**2 / (2 * s0_1**2)) / np.sqrt(2 * np.pi * s0_1**2)
-        line_2 = F0_2 * np.exp(-(self.lam_ex - l0_2)**2 / (2 * s0_2**2)) / np.sqrt(2 * np.pi * s0_2**2)
-        model_line = line_1 + line_2
-        ln_p_i = -np.log(np.sqrt(2 * np.pi) * self.error_ex) - (self.flux_ex - model_line)**2 / (2 * self.error_ex**2)
-        lnlike = -np.sum(ln_p_i)
-        
-        return lnlike
+        self.norm_cont = norm_cont
+        self.l0_line = l0_line
+        self.xx_line = xx_line
 
     def fit_cont(self, nsig_up=20, nsig_low=2, degree=3, span=0.05, Nit=20):
         x1_temp = self.lam_ex
         x2_temp = self.flux_ex
 
         for _ in range(Nit):
-            temp = np.polyfit(x1_temp, x2_temp, degree)
-            model_line = np.polyval(temp, x1_temp)
-            xx_temp1 = (x2_temp - model_line) <= nsig_up * np.std(x2_temp - model_line) 
-            xx_temp2 = np.abs(x2_temp - model_line) <= nsig_low * np.std(x2_temp - model_line)
+            spline = UnivariateSpline(x1_temp, x2_temp, k=degree, s=span*len(x1_temp))
+            model_line = spline(x1_temp)
+            diff = x2_temp - model_line
+            xx_temp1 = (diff <= nsig_up * np.std(diff)) & (diff >= 0)
+            xx_temp2 = (np.abs(diff) <= nsig_low * np.std(diff)) & (diff < 0)
             xx_temp = xx_temp1 | xx_temp2
             x1_temp = x1_temp[xx_temp]
             x2_temp = x2_temp[xx_temp]
-
-        temp = np.polyfit(x1_temp, x2_temp, degree)
+            
+        final_spline = UnivariateSpline(x1_temp, x2_temp, k=degree, s=span*len(x1_temp))
         
-        return temp
+        return final_spline
 
+    def run_analysis(self):
+        bbmle = importr('bbmle')
+        robjects.r('''
+        single_gauss <- function(l0, s0, F0, lambda, flux, err) {
+            model_line <- F0 * exp(-(lambda - l0)^2 / (2 * s0^2)) / sqrt(2 * pi * s0^2)
+            ln_p_i <- -log(sqrt(2 * pi) * err) - (flux - model_line)^2 / (2 * err^2)
+            lnlike <- -sum(ln_p_i)
+            return(lnlike)
+        }
+        
+        two_gauss <- function(l0_1, s0_1, F0_1, l0_2, s0_2, F0_2, lambda, flux, err) {
+            line_1 <- F0_1 * exp(-(lambda - l0_1)^2 / (2 * s0_1^2)) / sqrt(2 * pi * s0_1^2)
+            line_2 <- F0_2 * exp(-(lambda - l0_2)^2 / (2 * s0_2^2)) / sqrt(2 * pi * s0_2^2)
+            model_line <- line_1 + line_2
+            ln_p_i <- -log(sqrt(2 * pi) * err) - (flux - model_line)^2 / (2 * err^2)
+            lnlike <- -sum(ln_p_i)
+            return(lnlike)
+        }
+        ''')
+
+        lambda_r = FloatVector(self.lam_ex[self.xx_line])
+        flux_r = FloatVector(self.flux_ex[self.xx_line])
+        error_r = FloatVector(self.error_ex[self.xx_line])
+
+        start_params_single = ListVector({'l0': self.l0_line, 's0': 2, 'F0': 4500})
+        lower_bounds_single = ListVector({'l0': self.l0_line - 10, 's0': 1, 'F0': 5})
+        upper_bounds_single = ListVector({'l0': self.l0_line + 10, 's0': 8, 'F0': 1e4})
+
+        mle_result_single = bbmle.mle2(robjects.r['single_gauss'],
+                                       start=start_params_single,
+                                       data=ListVector({'lambda': lambda_r, 'flux': flux_r, 'err': error_r}),
+                                       method="L-BFGS-B",
+                                       skip_hessian = True,
+                                       lower=lower_bounds_single,
+                                       upper=upper_bounds_single,
+                                       control=ListVector({'maxit': 1e5}))
+
+        tt_single = robjects.r['coef'](mle_result_single)
+        self.l0_bin, self.s0_bin, self.F0_bin = tt_single[0], tt_single[1], tt_single[2]
+        self.aic_1 = robjects.r['AIC'](mle_result_single)[0]
+        self.bic_1 = robjects.r['BIC'](mle_result_single)[0]
+
+        print("Single Component Results:")
+        print("BIC =", self.bic_1, "AIC =", self.aic_1)
+        print("l0 =", self.l0_bin, "s0 =", self.s0_bin, "F0 =", self.F0_bin)
+        
+        start_params_two = ListVector({'l0_1': self.l0_line, 's0_1': 2, 'F0_1': 4500,
+                                    'l0_2': self.l0_line + 10, 's0_2': 3, 'F0_2': 2000})
+        lower_bounds_two = ListVector({'l0_1': self.l0_line - 20, 's0_1': 1, 'F0_1': 5,
+                                    'l0_2': self.l0_line - 10, 's0_2': 1, 'F0_2': 5})
+        upper_bounds_two = ListVector({'l0_1': self.l0_line + 20, 's0_1': 8, 'F0_1': 1e4,
+                                    'l0_2': self.l0_line + 10, 's0_2': 10, 'F0_2': 5e3})
+
+        mle_result_two = bbmle.mle2(robjects.r['two_gauss'],
+                                    start=start_params_two,
+                                    data=ListVector({'lambda': lambda_r, 'flux': flux_r, 'err': error_r}),
+                                    method="L-BFGS-B",
+                                    skip_hessian = True,
+                                    lower=lower_bounds_two,
+                                    upper=upper_bounds_two,
+                                    control=ListVector({'maxit': 1e8}))
+
+        tt_two = robjects.r['coef'](mle_result_two)
+        (self.l0_1_bin, self.s0_1_bin, self.F0_1_bin,
+        self.l0_2_bin, self.s0_2_bin, self.F0_2_bin) = tt_two
+        self.aic_2 = robjects.r['AIC'](mle_result_two)[0]
+        self.bic_2 = robjects.r['BIC'](mle_result_two)[0]
+
+        print("\nTwo Components Results:")
+        print("BIC =", self.bic_2, "AIC =", self.aic_2)
+        print("l0_1 =", self.l0_1_bin, "s0_1 =", self.s0_1_bin, "F0_1 =", self.F0_1_bin)
+        print("l0_2 =", self.l0_2_bin, "s0_2 =", self.s0_2_bin, "F0_2 =", self.F0_2_bin)
+
+# Código feito anteriormente   
+"""
     def run_analysis(self):
         if self.norm_cont:
             temp = self.fit_cont(self.lam_ex, self.flux_ex)
@@ -72,15 +135,19 @@ class SpectralAnalysis:
         self.aic_2 = self.AIC(res)
         print("\nTwo Components: BIC =", self.bic_2, "AIC =", self.aic_2)
         print("l0_1 = ", self.l0_1_bin, "s0_1 = ", self.s0_1_bin, "F0_1 = ", self.F0_1_bin, "l0_2 = ", self.l0_2_bin, "s0_2 = ", self.s0_2_bin, "F0_2 = ", self.F0_2_bin)
-
+    
     def BIC(self, res):
+        nobs = len(self.lam_ex[self.xx_line])
         k = len(res.x)
-        equation = -2 * res.fun + k * np.log(len(self.lam_ex[self.xx_line]))
+        llf = res.fun
+        bic = -2 * res.fun + (k+1) * np.log(nobs)
         
-        return equation
+        return bic
 
     def AIC(self, res):
         k = len(res.x)
-        equation = 2 * k - 2 * res.fun
+        llf = res.fun
+        aic = - 2 * llf + 2 * (k + 1)
         
-        return equation
+        return aic
+"""

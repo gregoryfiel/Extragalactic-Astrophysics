@@ -44,39 +44,39 @@ two_gauss <- function(lambda, flux, err, l0_1, s0_1, F0_1, l0_2, s0_2, F0_2){
   return(lnlike)
 }
 
-#######################################################
-# FUNTION NORMALIZE CONTINUUM
-#######################################################
-nsig_up = 20
-nsig_low = 2
-degree = 3
-span = 0.05
-Nit = 20
-fit_cont <- function(x, y, nsig_up, nsig_low, degree, span, Nit){
-  if(missing(nsig_up)){nsig_up = 20}
-  if(missing(nsig_low)){nsig_low = 2}
-  if(missing(degree)){degree = 2}
-  if(missing(span)){span = 0.1}
-  if(missing(Nit)){Nit = 10}
-  
-  x2_temp = y
-  x1_temp = x
-  
-  for(nn in 1:Nit){
+  #######################################################
+  # FUNTION NORMALIZE CONTINUUM
+  #######################################################
+  nsig_up = 20
+  nsig_low = 2
+  degree = 3
+  span = 0.05
+  Nit = 20
+  fit_cont <- function(x, y, nsig_up, nsig_low, degree, span, Nit){
+    if(missing(nsig_up)){nsig_up = 20}
+    if(missing(nsig_low)){nsig_low = 2}
+    if(missing(degree)){degree = 2}
+    if(missing(span)){span = 0.1}
+    if(missing(Nit)){Nit = 10}
+    
+    x2_temp = y
+    x1_temp = x
+    
+    for(nn in 1:Nit){
+      temp <- loess(x2_temp ~ x1_temp, degree = degree, span = span)
+      xx.xx_temp1 = x2_temp - predict(temp) <= nsig_up * sd(x2_temp - predict(temp)) & x2_temp - predict(temp) >= 0
+      xx.xx_temp2 = abs(x2_temp - predict(temp)) <= nsig_low * sd(x2_temp - predict(temp)) & x2_temp - predict(temp) < 0
+      
+      xx.xx_temp = xx.xx_temp1 | xx.xx_temp2
+      
+      x1_temp = x1_temp[xx.xx_temp]
+      x2_temp = x2_temp[xx.xx_temp]
+    }
+    
     temp <- loess(x2_temp ~ x1_temp, degree = degree, span = span)
-    xx.xx_temp1 = x2_temp - predict(temp) <= nsig_up * sd(x2_temp - predict(temp)) & x2_temp - predict(temp) >= 0
-    xx.xx_temp2 = abs(x2_temp - predict(temp)) <= nsig_low * sd(x2_temp - predict(temp)) & x2_temp - predict(temp) < 0
     
-    xx.xx_temp = xx.xx_temp1 | xx.xx_temp2
-    
-    x1_temp = x1_temp[xx.xx_temp]
-    x2_temp = x2_temp[xx.xx_temp]
+    return(temp)
   }
-  
-  temp <- loess(x2_temp ~ x1_temp, degree = degree, span = span)
-  
-  return(temp)
-}
 
 # ---------------------------------------
 # ---------------------------------------
@@ -112,7 +112,7 @@ xx.xx_line = lam_ex >= l0_line - 20 & lam_ex <= l0_line + 20
   mle.result <- mle2(single_gauss, start = list(l0 = l0_line, s0 = 2, F0 = 4500),
                     fixed = fixed_i,
                     data = list(lambda = lam_ex[xx.xx_line], flux = flux_ex[xx.xx_line], err = error_ex[xx.xx_line]), 
-                    method = "L-BFGS-B", skip.hessian = T,
+                    method = "L-BFGS  -B", skip.hessian = T,
                     lower = lower_i, upper = upper_i,
                     control = list(maxit = 1e5))
   tt <- coef(mle.result)
