@@ -15,16 +15,18 @@ def get_path(cxt_filename):
 def main():
     spectrum_cxt = '0555-52266-0558'
     cxt_file, png_file = get_path(spectrum_cxt)
-    ex_gal = pd.read_csv(cxt_file, delim_whitespace=True, header=None)
+    ex_gal = pd.read_csv(cxt_file, sep='\s+', header=None)
     lam_ex = ex_gal[0][ex_gal[1] > 0].values
     flux_ex = ex_gal[1][ex_gal[1] > 0].values
     error_original = ex_gal[2][ex_gal[1] > 0].values
+    norm_count = True
     error_ex = np.ones_like(flux_ex)
+    l0_line = 6562
+    xx_line = (lam_ex >= l0_line - 20) & (lam_ex <= l0_line + 20)
 
-    analyzer = SpectralAnalysis(lam_ex, flux_ex, error_ex, error_original)
+    analyzer = SpectralAnalysis(lam_ex, flux_ex, error_ex, error_original, norm_count, l0_line, xx_line)
     analyzer.run_analysis()
 
-    xx_line = (analyzer.lam_ex >= analyzer.l0_line - 20) & (analyzer.lam_ex <= analyzer.l0_line + 20)
     plotter = Plotter(analyzer, xx_line)
     plotter.save_plots(png_file)
 

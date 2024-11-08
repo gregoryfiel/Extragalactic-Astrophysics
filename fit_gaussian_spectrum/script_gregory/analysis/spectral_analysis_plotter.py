@@ -13,12 +13,12 @@ class Plotter:
         plt.subplot(3, 1, 1)
         plt.plot(self.analyzer.lam_ex[self.xx_line], self.analyzer.flux_ex[self.xx_line], 'k-', lw=2)
         
-        self.model_line = self.analyzer.F0_bin * np.exp(-((self.analyzer.lam_ex - self.analyzer.l0_bin)**2) / (2 * self.analyzer.s0_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_bin**2)
+        self.model_line = self.analyzer.F0_bin * np.exp(-(self.analyzer.lam_ex - self.analyzer.l0_bin)**2 / (2 * self.analyzer.s0_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_bin**2)
         
         plt.plot(self.analyzer.lam_ex, self.model_line, 'b-')
             
         self.model_line_2 = self.analyzer.F0_1_bin * np.exp(-((self.analyzer.lam_ex - self.analyzer.l0_1_bin)**2) / (2 * self.analyzer.s0_1_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_1_bin**2) + \
-                       self.analyzer.F0_2_bin * np.exp(-((self.analyzer.lam_ex - self.analyzer.l0_2_bin)**2) / (2 * self.analyzer.s0_2_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_2_bin**2)
+                       self.analyzer.F0_2_bin * np.exp(-(self.analyzer.lam_ex - self.analyzer.l0_2_bin)**2 / (2 * self.analyzer.s0_2_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_2_bin**2)
         
         plt.plot(self.analyzer.lam_ex, self.model_line_2, 'r--')
         plt.xlim([6540, 6580])
