@@ -8,6 +8,8 @@ src/venv/
 env/
 *.conda
 environments.yml
+Scripts/Sabrina_scripts/.venv
+Scripts/Gregory_scripts/.venv
 
 # Ignorar arquivos e diretórios de cache do Python
 __pycache__/
