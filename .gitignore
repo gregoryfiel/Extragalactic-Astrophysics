@@ -1,6 +1,13 @@
-# Ignorar ambientes virtuais
+# Ignorar instalador do Miniconda
+Miniconda3-latest-Linux-x86_64.sh
+
+# Ignorar ambientes Conda e virtuais
 venv/
 src/venv/
+.conda/
+env/
+*.conda
+environments.yml
 
 # Ignorar arquivos e diretórios de cache do Python
 __pycache__/
@@ -10,11 +17,12 @@ __pycache__/
 *.log
 *.tmp
 
-# Ignorar outros diretórios de cache
+# Ignorar dados brutos/landing zone
+/data/landing/
+
+# Ignorar paths específicos de cache (versão simplificada)
 /Project-CSGalaxies/src/analysis/__pycache__/
 /Project-CSGalaxies/src/api/__pycache__/
-/Project-CSGalaxies/data/landing/
-Project-CSGalaxies/src/analysis/__pycache__/csgalaxies.cpython-311.pyc
-Project-CSGalaxies/src/api/__pycache__/MarvinClient.cpython-311.pyc
-Project-CSGalaxies/src/analysis/__pycache__/csgalaxies.cpython-311.pyc
-fit_gaussian_spectrum\script_gregory\__pycache__
+
+# Ignorar pasta de scripts com cache
+/fit_gaussian_spectrum/script_gregory/__pycache__/
