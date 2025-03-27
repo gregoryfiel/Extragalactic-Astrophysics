@@ -1,5 +1,5 @@
-import numpy as np
-import pandas as pd
+import numpy as np # type: ignore
+import pandas as pd # type: ignore
 from pathlib import Path
 from analysis.spectral_analysis import SpectralAnalysis
 from analysis.spectral_analysis_plotter import Plotter

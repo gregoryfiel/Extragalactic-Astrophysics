@@ -1,0 +1,8 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "jupyter.kernels.trusted": [
+        ".venv"
+    ],
+    "jupyter.kernelPicker.quickPick": "filtered",
+    "jupyter.jupyterServerType": "local"
+}
