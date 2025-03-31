@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import UnivariateSpline
-import rpy2.robjects as robjects
-from rpy2.robjects.packages import importr
-from rpy2.robjects.vectors import FloatVector, ListVector
+import rpy2.robjects as robjects # type: ignore
+from rpy2.robjects.packages import importr # type: ignore
+from rpy2.robjects.vectors import FloatVector, ListVector # type: ignore
 
 
 class SpectralAnalysis:
