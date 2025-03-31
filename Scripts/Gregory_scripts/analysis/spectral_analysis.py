@@ -26,7 +26,10 @@ class SpectralAnalysis:
         """Normaliza o fluxo subtraindo o contínuo."""
         cont_model = self.fit_cont(**kwargs)
         self.mean_flux = cont_model(self.lam_ex)
+        print("Mean Flux (Continuum):", self.mean_flux)  # Verificar o contínuo ajustado
+        print("Original Flux:", self.flux_ex)  # Verificar o fluxo original
         self.flux = self.flux_ex - self.mean_flux
+        print("Adjusted Flux:", self.flux)  # Verificar o fluxo ajustado
         self.error = np.ones_like(self.flux)
 
     def fit_cont(self, nsig_up=20, nsig_low=2, span=0.1, Nit=10):
