@@ -1,37 +1,64 @@
-import numpy as np
-from scipy.interpolate import UnivariateSpline
-import rpy2.robjects as robjects
-from rpy2.robjects.packages import importr
-from rpy2.robjects.vectors import FloatVector, ListVector
+import numpy as np # type: ignore
+from scipy.interpolate import UnivariateSpline # type: ignore
+import rpy2.robjects as robjects # type: ignore
+from rpy2.robjects.packages import importr # type: ignore
+from rpy2.robjects.vectors import FloatVector, ListVector # type: ignore
+from statsmodels.nonparametric.smoothers_lowess import lowess # type: ignore
+from scipy.interpolate import interp1d # type: ignore
+
 
 
 class SpectralAnalysis:
-    def __init__(self, lambda_, flux, err, error_original, norm_cont, l0_line, xx_line):
-        self.lam_ex = lambda_
-        self.flux_ex = flux
-        self.error_ex = err
-        self.error_original = error_original
-        self.norm_cont = norm_cont
+    def __init__(self, lam_ex, flux, error, xx_line, l0_line=6562, norm_cont=False, **fit_cont_kwargs):
+        self.lam_ex = lam_ex.copy()
+        self.flux_ex = flux.copy()
+        self.error_original = error.copy()
         self.l0_line = l0_line
         self.xx_line = xx_line
 
-    def fit_cont(self, nsig_up=20, nsig_low=2, degree=3, span=0.05, Nit=20):
-        x1_temp = self.lam_ex
-        x2_temp = self.flux_ex
+        if norm_cont:
+            self._normalize_continuum(**fit_cont_kwargs)
+        else:
+            self.flux = self.flux_ex.copy()
+            self.error = self.error_original.copy()
+
+    def _normalize_continuum(self, **kwargs):
+        """Normaliza o fluxo subtraindo o contínuo."""
+        cont_model = self.fit_cont(**kwargs)
+        self.mean_flux = cont_model(self.lam_ex)
+        print("Mean Flux (Continuum):", self.mean_flux)  # Verificar o contínuo ajustado
+        print("Original Flux:", self.flux_ex)  # Verificar o fluxo original
+        self.flux = self.flux_ex - self.mean_flux
+        print("Adjusted Flux:", self.flux)  # Verificar o fluxo ajustado
+        self.error = np.ones_like(self.flux)
+
+    def fit_cont(self, nsig_up=20, nsig_low=2, span=0.1, Nit=10):
+        """Ajusta o contínuo usando LOESS com filtro iterativo."""
+        x1_temp = self.lam_ex.copy()
+        x2_temp = self.flux_ex.copy()
 
         for _ in range(Nit):
-            spline = UnivariateSpline(x1_temp, x2_temp, k=degree, s=span*len(x1_temp))
-            model_line = spline(x1_temp)
-            diff = x2_temp - model_line
-            xx_temp1 = (diff <= nsig_up * np.std(diff)) & (diff >= 0)
-            xx_temp2 = (np.abs(diff) <= nsig_low * np.std(diff)) & (diff < 0)
-            xx_temp = xx_temp1 | xx_temp2
-            x1_temp = x1_temp[xx_temp]
-            x2_temp = x2_temp[xx_temp]
+            smoothed = lowess(
+                x2_temp, x1_temp, frac=span, it=0, 
+                delta=0, is_sorted=True, return_sorted=False
+            )
+            residuals = x2_temp - smoothed
+            std = np.std(residuals)
             
-        final_spline = UnivariateSpline(x1_temp, x2_temp, k=degree, s=span*len(x1_temp))
-        
-        return final_spline
+            mask = (
+                ((residuals >= 0) & (residuals <= nsig_up * std)) |
+                ((residuals < 0) & (np.abs(residuals) <= nsig_low * std))
+            )
+            x1_temp, x2_temp = x1_temp[mask], x2_temp[mask]
+            
+        final_smoothed = lowess(
+            x2_temp, x1_temp, frac=span, it=0,
+            delta=0, is_sorted=True, return_sorted=False
+        )
+        return interp1d(
+            x1_temp, final_smoothed, 
+            bounds_error=False, fill_value="extrapolate"
+        )
 
     def run_analysis(self):
         bbmle = importr('bbmle')
@@ -54,8 +81,8 @@ class SpectralAnalysis:
         ''')
 
         lambda_r = FloatVector(self.lam_ex[self.xx_line])
-        flux_r = FloatVector(self.flux_ex[self.xx_line])
-        error_r = FloatVector(self.error_ex[self.xx_line])
+        flux_r = FloatVector(self.flux[self.xx_line])
+        error_r = FloatVector(self.error[self.xx_line])
 
         start_params_single = ListVector({'l0': self.l0_line, 's0': 2, 'F0': 4500})
         lower_bounds_single = ListVector({'l0': self.l0_line - 10, 's0': 1, 'F0': 5})
@@ -113,7 +140,7 @@ class SpectralAnalysis:
             temp = self.fit_cont(self.lam_ex, self.flux_ex)
             self.mean_flux = np.polyval(temp, self.lam_ex)
             self.flux_ex = self.flux_ex - self.mean_flux
-            self.flux_original = self.flux_ex
+            self.flux_ex = self.flux_ex
 
         self.xx_line = (self.lam_ex >= self.l0_line - 20) & (self.lam_ex <= self.l0_line + 20)
 

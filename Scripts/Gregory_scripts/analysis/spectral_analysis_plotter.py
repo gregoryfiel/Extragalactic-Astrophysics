@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt # type: ignore
+import numpy as np # type: ignore
 
 
 class Plotter:
@@ -21,7 +21,7 @@ class Plotter:
                        self.analyzer.F0_2_bin * np.exp(-(self.analyzer.lam_ex - self.analyzer.l0_2_bin)**2 / (2 * self.analyzer.s0_2_bin**2)) / np.sqrt(2 * np.pi * self.analyzer.s0_2_bin**2)
         
         plt.plot(self.analyzer.lam_ex, self.model_line_2, 'r--')
-        plt.xlim([6540, 6580])
+        plt.xlim([6545, 6580])
         plt.xlabel('lambda')
         plt.ylabel('Flux')
         plt.legend(['Observed', 'One component', 'Two components', 'Two components',], loc='upper left')
