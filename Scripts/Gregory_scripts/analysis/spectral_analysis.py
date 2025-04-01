@@ -7,7 +7,6 @@ from statsmodels.nonparametric.smoothers_lowess import lowess # type: ignore
 from scipy.interpolate import interp1d # type: ignore
 
 
-
 class SpectralAnalysis:
     def __init__(self, lam_ex, flux, error, xx_line, l0_line=6562, norm_cont=False, **fit_cont_kwargs):
         self.lam_ex = lam_ex.copy()
@@ -26,13 +25,10 @@ class SpectralAnalysis:
         """Normaliza o fluxo subtraindo o contínuo."""
         cont_model = self.fit_cont(**kwargs)
         self.mean_flux = cont_model(self.lam_ex)
-        print("Mean Flux (Continuum):", self.mean_flux)  # Verificar o contínuo ajustado
-        print("Original Flux:", self.flux_ex)  # Verificar o fluxo original
         self.flux = self.flux_ex - self.mean_flux
-        print("Adjusted Flux:", self.flux)  # Verificar o fluxo ajustado
         self.error = np.ones_like(self.flux)
 
-    def fit_cont(self, nsig_up=20, nsig_low=2, span=0.1, Nit=10):
+    def fit_cont(self, nsig_up=20, nsig_low=3, span=0.05, Nit=20):
         """Ajusta o contínuo usando LOESS com filtro iterativo."""
         x1_temp = self.lam_ex.copy()
         x2_temp = self.flux_ex.copy()

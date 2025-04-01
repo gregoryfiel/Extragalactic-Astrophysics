@@ -4,6 +4,7 @@ from pathlib import Path
 from analysis.spectral_analysis import SpectralAnalysis
 from analysis.spectral_analysis_plotter import Plotter
 
+
 def get_path(cxt_filename):
     script_dir = Path(__file__).parent
     data_dir = script_dir / 'spectral_data'
