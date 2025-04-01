@@ -36,11 +36,19 @@ class Plotter:
 
     def plot_residuals(self):
         plt.subplot(3, 1, 3)
-        plt.plot(self.analyzer.lam_ex[self.xx_line], self.analyzer.flux_ex[self.xx_line] - self.model_line[self.xx_line], 'b-')
-        plt.plot(self.analyzer.lam_ex[self.xx_line], self.analyzer.flux_ex[self.xx_line] - self.model_line_2[self.xx_line], 'r--')
+        
+        residuals_one = self.analyzer.flux_ex[self.xx_line] - self.model_line[self.xx_line]
+        residuals_one -= np.mean(residuals_one) 
+        
+        residuals_two = self.analyzer.flux_ex[self.xx_line] - self.model_line_2[self.xx_line]
+        residuals_two -= np.mean(residuals_two)
+        
+        plt.plot(self.analyzer.lam_ex[self.xx_line], residuals_one, 'b-', label='One Component Residuals')
+        plt.plot(self.analyzer.lam_ex[self.xx_line], residuals_two, 'r--', label='Two Components Residuals')
         plt.axhline(y=0, color='k', linestyle='--')
         plt.xlabel('lambda')
         plt.ylabel(r'$\Delta$ Flux')
+        plt.legend()
 
     def save_plots(self, filename):
         self.plot_spectrum()
