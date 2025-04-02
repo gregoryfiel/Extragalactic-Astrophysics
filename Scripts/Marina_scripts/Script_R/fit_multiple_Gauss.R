@@ -83,7 +83,7 @@ two_gauss <- function(lambda, flux, err, l0_1, s0_1, F0_1, l0_2, s0_2, F0_2){
 # Spectrum
 # ---------------------------------------
 # ---------------------------------------
-ex_gal = read.table('fit_gaussian_spectrum\\script_marina\\0555-52266-0558.cxt') # I Zw 18
+ex_gal = read.table('0555-52266-0558.cxt') # I Zw 18
 lam_ex = ex_gal$V1[ex_gal$V2 > 0]
 flux_ex = ex_gal$V2[ex_gal$V2 > 0]
 error_ex = ex_gal$V3[ex_gal$V2 > 0]; error_ex[] = 1
@@ -112,7 +112,7 @@ xx.xx_line = lam_ex >= l0_line - 20 & lam_ex <= l0_line + 20
   mle.result <- mle2(single_gauss, start = list(l0 = l0_line, s0 = 2, F0 = 4500),
                     fixed = fixed_i,
                     data = list(lambda = lam_ex[xx.xx_line], flux = flux_ex[xx.xx_line], err = error_ex[xx.xx_line]), 
-                    method = "L-BFGS  -B", skip.hessian = T,
+                    method = "L-BFGS-B", skip.hessian = T,
                     lower = lower_i, upper = upper_i,
                     control = list(maxit = 1e5))
   tt <- coef(mle.result)
@@ -187,4 +187,46 @@ plot(lam_ex[xx.xx_line], flux_ex[xx.xx_line] - model_line[xx.xx_line], type = 'l
      xlab = 'lambda', ylab = expression(paste(Delta, 'Flux')))
 lines(lam_ex[xx.xx_line], flux_ex[xx.xx_line] - model_line_2[xx.xx_line], col = 'red')
 abline(h = 0, lty = 3)
+
+# Definir os limites de recorte
+start <- 6545
+end <- 6580
+step <- 5
+
+# Criar uma pasta para salvar as imagens
+output_folder <- "zoomed_plots"
+if (!dir.exists(output_folder)) {
+  dir.create(output_folder)
+}
+
+# Gerar os gráficos com recortes
+for (i in seq(start, end - step, by = step)) {
+  x_min <- i
+  x_max <- i + step
+  
+  # Filtrar os dados para o intervalo atual
+  mask <- lam_ex >= x_min & lam_ex < x_max
+  
+  # Nome do arquivo para salvar
+  filename <- paste0(output_folder, "/spectrum_zoom_", x_min, "_", x_max, ".png")
+  
+  # Criar o gráfico
+  png(filename, width = 800, height = 600)
+  plot(lam_ex[mask], flux_ex[mask], type = 'l', xlab = 'lambda', ylab = 'Flux', lwd = 2, main = paste("Zoom:", x_min, "-", x_max))
+  
+  # Adicionar o modelo de 1 componente
+  model_line <- F0_bin * exp(-(lam_ex - l0_bin)^2 / (2 * s0_bin^2)) / sqrt(2 * pi * s0_bin^2)
+  lines(lam_ex[mask], model_line[mask], col = 'blue')
+  
+  # Adicionar o modelo de 2 componentes
+  model_line_2 <- F0_1_bin * exp(-(lam_ex - l0_1_bin)^2 / (2 * s0_1_bin^2)) / sqrt(2 * pi * s0_1_bin^2) +
+    F0_2_bin * exp(-(lam_ex - l0_2_bin)^2 / (2 * s0_2_bin^2)) / sqrt(2 * pi * s0_2_bin^2)
+  lines(lam_ex[mask], model_line_2[mask], col = 'red', lty = 5)
+  
+  # Adicionar legenda
+  legend('topleft', c('Observed', 'One component', 'Two components'), 
+         lty = c(1, 1, 5), col = c('black', 'blue', 'red'), bty = 'n', cex = 1.2, lwd = c(2, 1, 1))
+  
+  dev.off()
+}
 
