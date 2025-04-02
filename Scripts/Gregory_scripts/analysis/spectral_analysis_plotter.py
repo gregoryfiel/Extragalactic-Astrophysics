@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt # type: ignore
 import numpy as np # type: ignore
+import os  # Import necessário para criar subpastas
 
 
 class Plotter:
@@ -56,3 +57,44 @@ class Plotter:
         self.plot_residuals()
         plt.tight_layout()
         plt.savefig(filename)
+
+        # Extrair o diretório do arquivo e criar a subpasta para os gráficos com zoom
+        output_folder = os.path.join(os.path.dirname(filename), "zoomed_plots")
+        self.save_zoomed_plots(output_folder)
+
+    def save_zoomed_plots(self, output_folder):
+        """
+        Salva 5 imagens com recortes de 5 em 5 no comprimento de onda (X).
+        """
+        # Criar a subpasta para salvar as imagens, se não existir
+        os.makedirs(output_folder, exist_ok=True)
+
+        # Definir os limites de recorte
+        start = 6545
+        end = 6580
+        step = 5
+
+        # Gerar os gráficos com recortes
+        for i, x_min in enumerate(range(start, end, step)):
+            x_max = x_min + step
+
+            # Filtrar os dados para o intervalo atual
+            mask = (self.analyzer.lam_ex >= x_min) & (self.analyzer.lam_ex < x_max)
+
+            plt.figure(figsize=(8, 6))
+            plt.plot(self.analyzer.lam_ex[mask], self.analyzer.flux_ex[mask], 'k-', lw=2, label='Observed')
+            plt.plot(self.analyzer.lam_ex[mask], self.model_line[mask], 'b-', label='One Component')
+            plt.plot(self.analyzer.lam_ex[mask], self.model_line_2[mask], 'r--', label='Two Components')
+
+            plt.xlim([x_min, x_max])
+            plt.xlabel('lambda')
+            plt.ylabel('Flux')
+            plt.legend(loc='upper left')
+            plt.title(f'Zoomed Spectrum: {x_min} - {x_max}')
+
+            # Salvar a imagem na subpasta
+            filename = os.path.join(output_folder, f'spectrum_zoom_{i + 1}.png')
+            plt.savefig(filename)
+            plt.close()
+
+        print(f"Zoomed plots saved in folder: {output_folder}")
