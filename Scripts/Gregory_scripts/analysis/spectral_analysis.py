@@ -5,6 +5,7 @@ from rpy2.robjects.packages import importr # type: ignore
 from rpy2.robjects.vectors import FloatVector, ListVector # type: ignore
 from statsmodels.nonparametric.smoothers_lowess import lowess # type: ignore
 from scipy.interpolate import interp1d # type: ignore
+from rpy2.robjects import r, pandas2ri # type: ignore
 
 
 class SpectralAnalysis:
@@ -23,38 +24,47 @@ class SpectralAnalysis:
 
     def _normalize_continuum(self, **kwargs):
         """Normaliza o fluxo subtraindo o contínuo."""
-        cont_model = self.fit_cont(**kwargs)
-        self.mean_flux = cont_model(self.lam_ex)
+        # Ajustar o contínuo usando a função R
+        loess_model = self.fit_cont(**kwargs)
+
+        # Prever os valores ajustados
+        predict_r = r['predict']
+        self.mean_flux = np.array(predict_r(loess_model, FloatVector(self.lam_ex)))
+
+        # Subtrair o contínuo ajustado
         self.flux = self.flux_ex - self.mean_flux
         self.error = np.ones_like(self.flux)
 
-    def fit_cont(self, nsig_up=20, nsig_low=3, span=0.05, Nit=20):
-        """Ajusta o contínuo usando LOESS com filtro iterativo."""
-        x1_temp = self.lam_ex.copy()
-        x2_temp = self.flux_ex.copy()
+    def fit_cont(self, nsig_up=20, nsig_low=2, degree=2, span=0.1, Nit=10):
+        """Chama a função fit_cont em R para ajustar o contínuo."""
+        pandas2ri.activate()
+        r('''
+        fit_cont <- function(x, y, nsig_up=20, nsig_low=2, degree=2, span=0.1, Nit=10) {
+            x2_temp <- y
+            x1_temp <- x
+            
+            for (nn in 1:Nit) {
+                temp <- loess(x2_temp ~ x1_temp, degree = degree, span = span)
+                residuals <- x2_temp - predict(temp)
+                xx_temp1 <- residuals <= nsig_up * sd(residuals) & residuals >= 0
+                xx_temp2 <- abs(residuals) <= nsig_low * sd(residuals) & residuals < 0
+                xx_temp <- xx_temp1 | xx_temp2
+                
+                x1_temp <- x1_temp[xx_temp]
+                x2_temp <- x2_temp[xx_temp]
+            }
+            
+            temp <- loess(x2_temp ~ x1_temp, degree = degree, span = span)
+            return(temp)
+        }
+        ''')
+        x_r = FloatVector(self.lam_ex)
+        y_r = FloatVector(self.flux_ex)
 
-        for _ in range(Nit):
-            smoothed = lowess(
-                x2_temp, x1_temp, frac=span, it=0, 
-                delta=0, is_sorted=True, return_sorted=False
-            )
-            residuals = x2_temp - smoothed
-            std = np.std(residuals)
-            
-            mask = (
-                ((residuals >= 0) & (residuals <= nsig_up * std)) |
-                ((residuals < 0) & (np.abs(residuals) <= nsig_low * std))
-            )
-            x1_temp, x2_temp = x1_temp[mask], x2_temp[mask]
-            
-        final_smoothed = lowess(
-            x2_temp, x1_temp, frac=span, it=0,
-            delta=0, is_sorted=True, return_sorted=False
-        )
-        return interp1d(
-            x1_temp, final_smoothed, 
-            bounds_error=False, fill_value="extrapolate"
-        )
+        fit_cont_r = r['fit_cont']
+        loess_model = fit_cont_r(x_r, y_r, nsig_up, nsig_low, degree, span, Nit)
+
+        return loess_model
 
     def run_analysis(self):
         bbmle = importr('bbmle')
@@ -128,49 +138,3 @@ class SpectralAnalysis:
         print("BIC =", self.bic_2, "AIC =", self.aic_2)
         print("l0_1 =", self.l0_1_bin, "s0_1 =", self.s0_1_bin, "F0_1 =", self.F0_1_bin)
         print("l0_2 =", self.l0_2_bin, "s0_2 =", self.s0_2_bin, "F0_2 =", self.F0_2_bin)
-
-# Código feito anteriormente   
-"""
-    def run_analysis(self):
-        if self.norm_cont:
-            temp = self.fit_cont(self.lam_ex, self.flux_ex)
-            self.mean_flux = np.polyval(temp, self.lam_ex)
-            self.flux_ex = self.flux_ex - self.mean_flux
-            self.flux_ex = self.flux_ex
-
-        self.xx_line = (self.lam_ex >= self.l0_line - 20) & (self.lam_ex <= self.l0_line + 20)
-
-        # Single Component
-        res = minimize(self.single_gauss, [self.l0_line, 2, 4500], method='L-BFGS-B',
-                       bounds=[(self.l0_line - 10, self.l0_line + 10), (1, 8), (5, 10000)])
-        self.l0_bin, self.s0_bin, self.F0_bin = res.x
-        self.bic_1 = self.BIC(res)
-        self.aic_1 = self.AIC(res)
-        print("Single Component: BIC =", self.bic_1, "AIC =", self.aic_1)
-        print("l0 = ", self.l0_bin, "s0 = ", self.s0_bin, "F0 = ", self.F0_bin)
-
-        # Two Components 
-        res = minimize(self.two_gauss, [self.l0_line, 2, 4500, self.l0_line + 10, 3, 2000], method='L-BFGS-B',
-                       bounds=[(self.l0_line - 20, self.l0_line + 20), (1, 8), (5, 10000), 
-                              (self.l0_line - 10, self.l0_line + 10), (1, 10), (5, 5000)])
-        self.l0_1_bin, self.s0_1_bin, self.F0_1_bin, self.l0_2_bin, self.s0_2_bin, self.F0_2_bin = res.x
-        self.bic_2 = self.BIC(res)
-        self.aic_2 = self.AIC(res)
-        print("\nTwo Components: BIC =", self.bic_2, "AIC =", self.aic_2)
-        print("l0_1 = ", self.l0_1_bin, "s0_1 = ", self.s0_1_bin, "F0_1 = ", self.F0_1_bin, "l0_2 = ", self.l0_2_bin, "s0_2 = ", self.s0_2_bin, "F0_2 = ", self.F0_2_bin)
-    
-    def BIC(self, res):
-        nobs = len(self.lam_ex[self.xx_line])
-        k = len(res.x)
-        llf = res.fun
-        bic = -2 * res.fun + (k+1) * np.log(nobs)
-        
-        return bic
-
-    def AIC(self, res):
-        k = len(res.x)
-        llf = res.fun
-        aic = - 2 * llf + 2 * (k + 1)
-        
-        return aic
-"""
